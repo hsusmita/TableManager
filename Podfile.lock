@@ -1,5 +1,5 @@
 PODS:
-  - DeepDiff (1.3.0)
+  - DeepDiff (1.4.0)
 
 DEPENDENCIES:
   - DeepDiff
@@ -9,7 +9,7 @@ SPEC REPOS:
     - DeepDiff
 
 SPEC CHECKSUMS:
-  DeepDiff: 0d52be4ac0822b38f1ce1ad1514c841d7166a67b
+  DeepDiff: c4dea751ace912310e0668ec3b2e5ebf06831c0d
 
 PODFILE CHECKSUM: 9948aefdecc5d9fe2cecc45d97929dc1e54b20e2
 

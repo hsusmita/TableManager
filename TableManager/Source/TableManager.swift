@@ -171,7 +171,7 @@ public class TableViewManager: NSObject {
 		let old = self.sectionModels
 		self.sectionModels = sectionModels
 		let changes = diff(old: old, new: sectionModels)
-		self.tableView.reload(changes: changes, completion: { _ in })
+		self.tableView.reload(changes: changes, updateData: {}, completion: { _ in })
 	}
 
 	func reload(cellModels: [TableCellModel]) {
