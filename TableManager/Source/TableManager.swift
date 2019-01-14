@@ -67,10 +67,10 @@ public class TableViewManager: NSObject {
 	private var heightForCell: (IndexPath, TableCellModel) -> CGFloat
 	private var heightForHeader: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
 	private var heightForFooter: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
-
+	
 	public var tableView: UITableView
 	public var delegate: TableViewManagerProtocol?
-
+	
 	public required init(_ tableView: UITableView, cellDescriptors: [CellDescriptor]) {
 		self.tableView = tableView
 		self.reuseIdentifierForCell = { indexPath, item in
@@ -81,9 +81,9 @@ public class TableViewManager: NSObject {
 			}
 			fatalError("ReuseIdentifier not found for indexPath = \(indexPath) item = \(item)")
 		}
-
+		
 		self.heightForCell = { indexPath, item in
-            var height = UITableView.automaticDimension
+			var height = UITableView.automaticDimension
 			for descriptor in cellDescriptors {
 				if descriptor.isMatching(indexPath, item) {
 					height = descriptor.height.value(indexPath: indexPath, item: item)
@@ -103,11 +103,11 @@ public class TableViewManager: NSObject {
 				tableView.register(type, forCellReuseIdentifier: descriptor.reuseIdentifier)
 			}
 		}
-
+		
 		tableView.dataSource = self
 		self.tableView.delegate = self
 	}
-
+	
 	func configureHeaderDescriptor(_ headerDescriptors: [HeaderFooterDescriptor]) {
 		self.reuseIdentifierForHeader = { index, item in
 			for descriptor in headerDescriptors {
@@ -118,9 +118,9 @@ public class TableViewManager: NSObject {
 			fatalError("ReuseIdentifier for header not found for section = \(index) item = \(item)")
 		}
 		self.registerHeaderFooter(headerDescriptors)
-
+		
 		self.heightForHeader = { index, item in
-            var height = UITableView.automaticDimension
+			var height = UITableView.automaticDimension
 			for descriptor in headerDescriptors {
 				if descriptor.isMatching(index, item) {
 					height = descriptor.height.value(index: index, item: item)
@@ -130,7 +130,7 @@ public class TableViewManager: NSObject {
 			return height
 		}
 	}
-
+	
 	func configureFooterDescriptor(_ footerDescriptors: [HeaderFooterDescriptor]) {
 		self.reuseIdentifierForHeader = { index, item in
 			for descriptor in footerDescriptors {
@@ -141,9 +141,9 @@ public class TableViewManager: NSObject {
 			fatalError("ReuseIdentifier for footer not found for section = \(index) item = \(item)")
 		}
 		self.registerHeaderFooter(footerDescriptors)
-
+		
 		self.heightForFooter = { index, item in
-            var height = UITableView.automaticDimension
+			var height = UITableView.automaticDimension
 			for descriptor in footerDescriptors {
 				if descriptor.isMatching(index, item) {
 					height = descriptor.height.value(index: index, item: item)
@@ -153,7 +153,7 @@ public class TableViewManager: NSObject {
 			return height
 		}
 	}
-
+	
 	private func registerHeaderFooter(_ headerDescriptors: [HeaderFooterDescriptor]) {
 		for descriptor in headerDescriptors {
 			switch descriptor.prototypeSource {
@@ -166,25 +166,28 @@ public class TableViewManager: NSObject {
 			}
 		}
 	}
-
-	func reload(with sectionModels: [TableSectionModel]) {
+	
+	public func reload(with sectionModels: [TableSectionModel]) {
 		let old = self.sectionModels
 		self.sectionModels = sectionModels
 		let changes = diff(old: old, new: sectionModels)
-		self.tableView.reload(changes: changes, updateData: {}, completion: { _ in })
+		self.tableView.applyChanges(changes)
 	}
-
-	func reload(cellModels: [TableCellModel]) {
-        let sectionModel = TableSectionModel(cellModels: cellModels)
-		reload(with: [sectionModel])
+	
+	public func reload(cellModels: [TableCellModel]) {
+		let sectionModel = TableSectionModel(cellModels: cellModels)
+		let changes = diff(old: self.sectionModels.first?.equatableCellModels ?? [], new: sectionModel.equatableCellModels)
+		self.tableView.reload(changes: changes, section: 0, updateData: { [weak self] in
+			self?.sectionModels = [sectionModel]
+			}, completion: nil)
 	}
-
-	func model(at indexPath: IndexPath) -> TableCellModel {
+	
+	public func model(at indexPath: IndexPath) -> TableCellModel {
 		let sectionModel = sectionModels[indexPath.section]
 		return sectionModel.cellModels[indexPath.row]
 	}
-
-	func selectedModels() -> [TableCellModel] {
+	
+	public func selectedModels() -> [TableCellModel] {
 		guard let indexPaths = tableView.indexPathsForSelectedRows else {
 			return []
 		}
@@ -193,15 +196,15 @@ public class TableViewManager: NSObject {
 }
 
 extension TableViewManager: UITableViewDataSource {
-    public func numberOfSections(in tableView: UITableView) -> Int {
-        return sectionModels.count
-    }
-    
-    public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+	public func numberOfSections(in tableView: UITableView) -> Int {
+		return sectionModels.count
+	}
+	
+	public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
 		return self.sectionModels[section].cellModels.count
 	}
-
-    public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+	
+	public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 		let cellModel = self.sectionModels[indexPath.section].cellModels[indexPath.row]
 		let reuseIdentifier = self.reuseIdentifierForCell(indexPath, cellModel)
 		let cell = tableView.dequeueReusableCell(withIdentifier: reuseIdentifier, for: indexPath)
@@ -213,32 +216,32 @@ extension TableViewManager: UITableViewDataSource {
 		}
 		return cell
 	}
-
+	
 	public func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
 		let cellModel = self.sectionModels[indexPath.section].cellModels[indexPath.row]
 		return self.heightForCell(indexPath, cellModel)
 	}
-
-    public func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        let headerModel = self.sectionModels[section].headerModel as? TitleHeaderFooterModel
-        return headerModel?.title
-    }
-    
-    public func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
-        let footerModel = self.sectionModels[section].footerModel as? TitleHeaderFooterModel
-        return footerModel?.title
-    }
+	
+	public func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+		let headerModel = self.sectionModels[section].headerModel as? TitleHeaderFooterModel
+		return headerModel?.title
+	}
+	
+	public func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+		let footerModel = self.sectionModels[section].footerModel as? TitleHeaderFooterModel
+		return footerModel?.title
+	}
 }
 
 extension TableViewManager: UITableViewDelegate {
 	public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 		delegate?.manager(manager: self, didSelect: indexPath)
 	}
-
+	
 	public func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
 		delegate?.manager(manager: self, didDeselect: indexPath)
 	}
-
+	
 	public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
 		guard let headerModel = sectionModels[section].headerModel else {
 			return nil
@@ -255,14 +258,14 @@ extension TableViewManager: UITableViewDelegate {
 		}
 		return headerView
 	}
-
+	
 	public func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
 		guard let headerModel = sectionModels[section].headerModel else {
 			return 0.0
 		}
-        return self.heightForHeader?(section, headerModel) ?? UITableView.automaticDimension
+		return self.heightForHeader?(section, headerModel) ?? UITableView.automaticDimension
 	}
-
+	
 	public func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
 		guard let footerModel = sectionModels[section].footerModel else {
 			return nil
@@ -279,24 +282,24 @@ extension TableViewManager: UITableViewDelegate {
 		}
 		return footerView
 	}
-
+	
 	public func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
 		guard let footerModel = sectionModels[section].footerModel else {
 			return 0.0
 		}
-        return self.heightForFooter?(section, footerModel) ?? UITableView.automaticDimension
+		return self.heightForFooter?(section, footerModel) ?? UITableView.automaticDimension
 	}
 }
 
 extension TableViewManager: TableViewCellEventDelegate {
-    public func handleEvent(cell: TableViewCell, event: EventCTA) {
+	public func handleEvent(cell: TableViewCell, event: EventCTA) {
 		let indexPath = tableView.indexPath(for: cell as! UITableViewCell)
 		delegate?.manager(manager: self, didInvokeCTA: event, indexPath: indexPath!)
 	}
 }
 
 extension TableViewManager: TableViewHeaderFooterEventDelegate {
-    public func handleEvent(headerFooterView: TableViewHeaderFooterView, event: EventCTA) {
+	public func handleEvent(headerFooterView: TableViewHeaderFooterView, event: EventCTA) {
 		for index in 0..<self.sectionModels.count {
 			let reuseIdentifier = tableView.headerView(forSection: index)!.reuseIdentifier
 			let headerModel = self.sectionModels[index].headerModel!
@@ -304,6 +307,53 @@ extension TableViewManager: TableViewHeaderFooterEventDelegate {
 				delegate?.manager(manager: self, didHeaderFooterInvokeCTA: event, section: index)
 				break
 			}
+		}
+	}
+}
+
+extension UITableView {
+	fileprivate func unifiedPerformBatchUpdates(
+		_ updates: (() -> Void),
+		completion: (@escaping (Bool) -> Void)) {
+		
+		if #available(iOS 11, tvOS 11, *) {
+			self.performBatchUpdates(updates, completion: completion)
+		} else {
+			self.beginUpdates()
+			updates()
+			self.endUpdates()
+			completion(true)
+		}
+	}
+	
+	fileprivate func applyChanges(_ changes: [Change<TableSectionModel>]) {
+		let inserts = changes.compactMap({ $0.insert }).map({ $0.index })
+		let deletes = changes.compactMap({ $0.delete }).map({ $0.index })
+		let replaces = changes.compactMap({ $0.replace }).map({ $0.index })
+		let moves = changes.compactMap({ $0.move }).map({
+			(
+				from: $0.fromIndex,
+				to: $0.toIndex
+			)
+		})
+		self.unifiedPerformBatchUpdates({
+			deletes.executeIfPresent {
+				self.deleteSections(IndexSet($0), with: .automatic)
+			}
+			
+			inserts.executeIfPresent {
+				self.insertSections(IndexSet($0), with: .automatic)
+			}
+			
+			moves.executeIfPresent {
+				$0.forEach { move in
+					self.moveSection(move.from, toSection: move.to)
+				}
+			}
+		}, completion: { _ in })
+		
+		replaces.executeIfPresent {
+			self.reloadSections(IndexSet($0), with: .automatic)
 		}
 	}
 }
