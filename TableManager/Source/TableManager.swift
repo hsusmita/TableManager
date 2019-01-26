@@ -176,12 +176,19 @@ public class TableViewManager: NSObject {
 	
 	public func reload(cellModels: [TableCellModel]) {
 		let sectionModel = TableSectionModel(cellModels: cellModels)
-		self.sectionModels = [sectionModel]
-		let changes = diff(old: self.sectionModels.first?.equatableCellModels ?? [], new: sectionModel.equatableCellModels)
-		if !changes.isEmpty {
-			self.tableView.reload(changes: changes, updateData: { [weak self] in
-				self?.sectionModels = [sectionModel]
-			}, completion: nil)
+		if self.sectionModels.isEmpty {
+			self.sectionModels = [sectionModel]
+			self.tableView.reloadData()
+		} else {
+			let changes = diff(old: self.sectionModels.first?.equatableCellModels ?? [], new: sectionModel.equatableCellModels)
+			if !changes.isEmpty {
+				self.tableView.reload(
+					changes: changes,
+					updateData: { [weak self] in
+						self?.sectionModels = [sectionModel]
+					},
+					completion: nil)
+			}
 		}
 	}
 	
