@@ -9,6 +9,10 @@
 import Foundation
 
 public struct TitleHeaderFooterModel: TableViewHeaderFooterModel {
-    public let title: String
-    public let identifier = UUID().uuidString
+	public let title: String
+	public let identifier = UUID().uuidString
+	
+	public init(title: String) {
+		self.title = title
+	}
 }

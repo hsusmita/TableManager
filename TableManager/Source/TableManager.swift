@@ -59,7 +59,7 @@ public extension TableViewManagerProtocol {
 	func manager(manager: TableViewManager, didHeaderFooterInvokeCTA cta: EventCTA, section: Int){}
 }
 
-public class TableViewManager: NSObject {
+open class TableViewManager: NSObject {
 	private(set) var sectionModels: [TableSectionModel] = []
 	private var reuseIdentifierForCell: (IndexPath, TableCellModel) -> String
 	private var reuseIdentifierForHeader: ((Int, TableViewHeaderFooterModel) -> String)?
@@ -108,7 +108,7 @@ public class TableViewManager: NSObject {
 		self.tableView.delegate = self
 	}
 	
-	func configureHeaderDescriptor(_ headerDescriptors: [HeaderFooterDescriptor]) {
+	public func configureHeaderDescriptor(_ headerDescriptors: [HeaderFooterDescriptor]) {
 		self.reuseIdentifierForHeader = { index, item in
 			for descriptor in headerDescriptors {
 				if descriptor.isMatching(index, item) {
@@ -131,7 +131,7 @@ public class TableViewManager: NSObject {
 		}
 	}
 	
-	func configureFooterDescriptor(_ footerDescriptors: [HeaderFooterDescriptor]) {
+	public func configureFooterDescriptor(_ footerDescriptors: [HeaderFooterDescriptor]) {
 		self.reuseIdentifierForHeader = { index, item in
 			for descriptor in footerDescriptors {
 				if descriptor.isMatching(index, item) {
@@ -160,18 +160,23 @@ public class TableViewManager: NSObject {
 			case .none:
 				break
 			case .nib(let nib):
-				tableView.register(nib, forHeaderFooterViewReuseIdentifier: descriptor.reuseIdentifier)
+				self.tableView.register(nib, forHeaderFooterViewReuseIdentifier: descriptor.reuseIdentifier)
 			case .class(let type):
-				tableView.register(type, forHeaderFooterViewReuseIdentifier: descriptor.reuseIdentifier)
+				self.tableView.register(type, forHeaderFooterViewReuseIdentifier: descriptor.reuseIdentifier)
 			}
 		}
 	}
 	
 	public func reload(with sectionModels: [TableSectionModel]) {
-		let old = self.sectionModels
-		self.sectionModels = sectionModels
-		let changes = diff(old: old, new: sectionModels)
-		self.tableView.applyChanges(changes)
+		if self.sectionModels.isEmpty {
+			self.sectionModels = sectionModels
+			self.tableView.reloadData()
+		} else {
+			let old = self.sectionModels
+			self.sectionModels = sectionModels
+			let changes = diff(old: old, new: sectionModels)
+			self.tableView.applyChanges(changes)
+		}
 	}
 	
 	public func reload(cellModels: [TableCellModel]) {
@@ -245,11 +250,11 @@ extension TableViewManager: UITableViewDataSource {
 
 extension TableViewManager: UITableViewDelegate {
 	public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-		delegate?.manager(manager: self, didSelect: indexPath)
+		self.delegate?.manager(manager: self, didSelect: indexPath)
 	}
 	
 	public func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
-		delegate?.manager(manager: self, didDeselect: indexPath)
+		self.delegate?.manager(manager: self, didDeselect: indexPath)
 	}
 	
 	public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
@@ -304,7 +309,7 @@ extension TableViewManager: UITableViewDelegate {
 extension TableViewManager: TableViewCellEventDelegate {
 	public func handleEvent(cell: TableViewCell, event: EventCTA) {
 		let indexPath = tableView.indexPath(for: cell as! UITableViewCell)
-		delegate?.manager(manager: self, didInvokeCTA: event, indexPath: indexPath!)
+		self.delegate?.manager(manager: self, didInvokeCTA: event, indexPath: indexPath!)
 	}
 }
 
