@@ -7,8 +7,17 @@
 //
 
 import Foundation
+import DeepDiff
 
-public struct TableSectionModel: Hashable {
+public struct TableSectionModel: Hashable, DiffAware {
+	public var diffId: Int {
+		return self.hashValue
+	}
+	
+	public static func compareContent(_ a: TableSectionModel, _ b: TableSectionModel) -> Bool {
+		return a == b
+	}
+	
 	public let cellModels: [TableCellModel]
 	public let headerModel: TableViewHeaderFooterModel?
 	public let footerModel: TableViewHeaderFooterModel?
@@ -34,7 +43,15 @@ public struct TableSectionModel: Hashable {
 	}
 }
 
-struct EqutableCellModel: Hashable {
+struct EqutableCellModel: Hashable, DiffAware {
+	var diffId: Int {
+		return self.hashValue
+	}
+	
+	static func compareContent(_ a: EqutableCellModel, _ b: EqutableCellModel) -> Bool {
+		return a == b
+	}
+	
 	static func == (lhs: EqutableCellModel, rhs: EqutableCellModel) -> Bool {
 		return lhs.cellModel.identifier == rhs.cellModel.identifier
 	}
