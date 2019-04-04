@@ -10,35 +10,37 @@ import Foundation
 
 public protocol EventCTA {}
 
-public class Event {
-    struct EventListener {
-        var target: AnyHashable
-        var action: () -> ()
-        func execute() {
-            action()
-        }
-    }
-    
-    var cta: EventCTA
-    init(cta: EventCTA) {
-        self.cta = cta
-    }
-    private var listeners: [EventListener] = []
-    
-    func fire() {
-        listeners.forEach({ $0.execute() })
-    }
-    
-    func addListener(listener: EventListener) {
-        if let index = listeners.index(where: { $0.target == listener.target }) {
-            listeners.remove(at: index)
-        }
-        listeners.append(listener)
-    }
+public struct EventListener {
+	var target: AnyHashable
+	var action: () -> ()
+	func execute() {
+		self.action()
+	}
 }
 
-extension Event.EventListener: Equatable {
-    static public func == (lhs: Event.EventListener, rhs: Event.EventListener) -> Bool {
-        return lhs.target == rhs.target
-    }
+extension EventListener: Equatable {
+	static public func == (lhs: EventListener, rhs: EventListener) -> Bool {
+		return lhs.target == rhs.target
+	}
 }
+
+public class Event {
+	var cta: EventCTA
+	private var listeners: [EventListener] = []
+	
+	public init(cta: EventCTA) {
+		self.cta = cta
+	}
+	
+	public func fire() {
+		self.listeners.forEach({ $0.execute() })
+	}
+	
+	public func addListener(listener: EventListener) {
+		if let index = self.listeners.index(where: { $0.target == listener.target }) {
+			self.listeners.remove(at: index)
+		}
+		self.listeners.append(listener)
+	}
+}
+
