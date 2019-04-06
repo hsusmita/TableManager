@@ -132,7 +132,7 @@ open class TableViewManager: NSObject {
 	}
 
 	public func configureFooterDescriptor(_ footerDescriptors: [HeaderFooterDescriptor]) {
-		self.reuseIdentifierForHeader = { index, item in
+		self.reuseIdentifierForFooter = { index, item in
 			for descriptor in footerDescriptors {
 				if descriptor.isMatching(index, item) {
 					return descriptor.reuseIdentifier
