@@ -60,7 +60,7 @@ public extension TableViewManagerProtocol {
 }
 
 open class TableViewManager: NSObject {
-	private(set) var sectionModels: [TableSectionModel] = []
+	private(set) public var sectionModels: [TableSectionModel] = []
 	private var reuseIdentifierForCell: (IndexPath, TableCellModel) -> String
 	private var reuseIdentifierForHeader: ((Int, TableViewHeaderFooterModel) -> String)?
 	private var reuseIdentifierForFooter: ((Int, TableViewHeaderFooterModel) -> String)?
