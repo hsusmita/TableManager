@@ -67,10 +67,10 @@ open class TableViewManager: NSObject {
 	private var heightForCell: (IndexPath, TableCellModel) -> CGFloat
 	private var heightForHeader: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
 	private var heightForFooter: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
-	
+
 	public var tableView: UITableView
 	public var delegate: TableViewManagerProtocol?
-	
+
 	public required init(_ tableView: UITableView, cellDescriptors: [CellDescriptor]) {
 		self.tableView = tableView
 		self.reuseIdentifierForCell = { indexPath, item in
@@ -118,7 +118,7 @@ open class TableViewManager: NSObject {
 			fatalError("ReuseIdentifier for header not found for section = \(index) item = \(item)")
 		}
 		self.registerHeaderFooter(headerDescriptors)
-		
+
 		self.heightForHeader = { index, item in
 			var height = UITableView.automaticDimension
 			for descriptor in headerDescriptors {
@@ -130,7 +130,7 @@ open class TableViewManager: NSObject {
 			return height
 		}
 	}
-	
+
 	public func configureFooterDescriptor(_ footerDescriptors: [HeaderFooterDescriptor]) {
 		self.reuseIdentifierForHeader = { index, item in
 			for descriptor in footerDescriptors {
