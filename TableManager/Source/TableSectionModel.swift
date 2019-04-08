@@ -21,39 +21,60 @@ public struct TableSectionModel: Hashable, DiffAware {
 	public let cellModels: [TableCellModel]
 	public let headerModel: TableViewHeaderFooterModel?
 	public let footerModel: TableViewHeaderFooterModel?
-	let equatableCellModels: [EqutableCellModel]
+	let equatableCellModels: [EquatableCellModel]
+	public let identifier: String
 	
-	public init(cellModels: [TableCellModel], headerModel: TableViewHeaderFooterModel? = nil, footerModel: TableViewHeaderFooterModel? = nil) {
+	public init(identifier: String, cellModels: [TableCellModel], headerModel: TableViewHeaderFooterModel? = nil, footerModel: TableViewHeaderFooterModel? = nil) {
+		self.identifier = identifier
 		self.cellModels = cellModels
 		self.headerModel = headerModel
 		self.footerModel = footerModel
-		self.equatableCellModels = cellModels.map { EqutableCellModel(cellModel: $0) }
+		self.equatableCellModels = cellModels.map { EquatableCellModel(cellModel: $0) }
 	}
 	
 	public static func == (lhs: TableSectionModel, rhs: TableSectionModel) -> Bool {
-		return lhs.cellModels.map { $0.identifier } == rhs.cellModels.map { $0.identifier } && lhs.headerModel?.identifier == rhs.headerModel?.identifier && lhs.footerModel?.identifier == rhs.footerModel?.identifier
+		guard lhs.cellModels.count == rhs.cellModels.count else {
+			return false
+		}
+		return (lhs.equatableCellModels == rhs.equatableCellModels)
+			&& lhs.isHeaderModelEqual(sectionModel: rhs)
+			&& lhs.isFooterModelEqual(sectionModel: rhs)
+	}
+	
+	public func isHeaderModelEqual(sectionModel: TableSectionModel) -> Bool {
+		var isEqual = true
+		isEqual = isEqual && (self.headerModel == nil && sectionModel.headerModel == nil)
+		if let headerModel = self.headerModel, let otherHeaderModel = sectionModel.headerModel {
+			isEqual = isEqual && headerModel.isEqual(item: otherHeaderModel)
+		}
+		return isEqual
+	}
+	
+	public func isFooterModelEqual(sectionModel: TableSectionModel) -> Bool {
+		var isEqual = true
+		isEqual = isEqual && (self.footerModel == nil && sectionModel.footerModel == nil)
+		if let footerModel = self.footerModel, let otherFooterModel = sectionModel.footerModel {
+			isEqual = isEqual && footerModel.isEqual(item: otherFooterModel)
+		}
+		return isEqual
 	}
 	
 	public func hash(into hasher: inout Hasher) {
-		self.headerModel?.identifier.hash(into: &hasher)
-		self.footerModel?.identifier.hash(into: &hasher)
-		for cellModel in self.cellModels {
-			cellModel.identifier.hash(into: &hasher)
-		}
+		self.identifier.hash(into: &hasher)
 	}
 }
 
-struct EqutableCellModel: Hashable, DiffAware {
+struct EquatableCellModel: Hashable, DiffAware {
 	var diffId: Int {
 		return self.hashValue
 	}
 	
-	static func compareContent(_ a: EqutableCellModel, _ b: EqutableCellModel) -> Bool {
+	static func compareContent(_ a: EquatableCellModel, _ b: EquatableCellModel) -> Bool {
 		return a == b
 	}
 	
-	static func == (lhs: EqutableCellModel, rhs: EqutableCellModel) -> Bool {
-		return lhs.cellModel.identifier == rhs.cellModel.identifier
+	static func == (lhs: EquatableCellModel, rhs: EquatableCellModel) -> Bool {
+		return lhs.cellModel.isEqual(item: rhs.cellModel)
 	}
 	func hash(into hasher: inout Hasher) {
 		self.cellModel.identifier.hash(into: &hasher)

@@ -9,13 +9,20 @@
 import UIKit
 import DeepDiff
 
-public protocol TableCellModel {
+public protocol TableItemModel {
 	var identifier: String { get }
+	func isEqual(item: TableItemModel) -> Bool
 }
 
-public protocol TableViewHeaderFooterModel {
-	var identifier: String { get }
+public extension TableItemModel where Self: Equatable {
+	func isEqual(item: TableItemModel) -> Bool {
+		guard let item = item as? Self else { return false }
+		return self == item
+	}
 }
+
+public typealias TableCellModel = TableItemModel
+public typealias TableViewHeaderFooterModel = TableItemModel
 
 public protocol TableViewCell {
 	func configure(with cellModel: TableCellModel)
@@ -67,9 +74,10 @@ open class TableViewManager: NSObject {
 	private var heightForCell: (IndexPath, TableCellModel) -> CGFloat
 	private var heightForHeader: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
 	private var heightForFooter: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
-
+	
 	public var tableView: UITableView
 	public var delegate: TableViewManagerProtocol?
+	var tableReloadInProcess = false
 
 	public required init(_ tableView: UITableView, cellDescriptors: [CellDescriptor]) {
 		self.tableView = tableView
@@ -118,7 +126,7 @@ open class TableViewManager: NSObject {
 			fatalError("ReuseIdentifier for header not found for section = \(index) item = \(item)")
 		}
 		self.registerHeaderFooter(headerDescriptors)
-
+		
 		self.heightForHeader = { index, item in
 			var height = UITableView.automaticDimension
 			for descriptor in headerDescriptors {
@@ -130,7 +138,7 @@ open class TableViewManager: NSObject {
 			return height
 		}
 	}
-
+	
 	public func configureFooterDescriptor(_ footerDescriptors: [HeaderFooterDescriptor]) {
 		self.reuseIdentifierForFooter = { index, item in
 			for descriptor in footerDescriptors {
@@ -166,31 +174,36 @@ open class TableViewManager: NSObject {
 			}
 		}
 	}
-	
+
 	public func reload(with sectionModels: [TableSectionModel]) {
 		if self.sectionModels.isEmpty {
 			self.sectionModels = sectionModels
 			self.tableView.reloadData()
 		} else {
 			let old = self.sectionModels
-			self.sectionModels = sectionModels
 			let changes = diff(old: old, new: sectionModels)
-			self.tableView.applyChanges(changes)
+			self.tableReloadInProcess = true
+			self.sectionModels = sectionModels
+			self.tableView.applyChanges(changes, completion: { _ in
+				self.tableReloadInProcess = false
+			})
 		}
 	}
 	
 	public func reload(cellModels: [TableCellModel]) {
-		let sectionModel = TableSectionModel(cellModels: cellModels)
+		let sectionModel = TableSectionModel(identifier: "First", cellModels: cellModels)
 		if self.sectionModels.isEmpty {
 			self.sectionModels = [sectionModel]
 			self.tableView.reloadData()
 		} else {
 			let changes = diff(old: self.sectionModels.first?.equatableCellModels ?? [], new: sectionModel.equatableCellModels)
 			if !changes.isEmpty {
+				self.sectionModels = [sectionModel]
+				self.tableReloadInProcess = true
 				self.tableView.reload(
 					changes: changes,
 					updateData: { [weak self] in
-						self?.sectionModels = [sectionModel]
+						self?.tableReloadInProcess = false
 					},
 					completion: nil)
 			}
@@ -203,7 +216,7 @@ open class TableViewManager: NSObject {
 	}
 	
 	public func selectedModels() -> [TableCellModel] {
-		guard let indexPaths = tableView.indexPathsForSelectedRows else {
+		guard let indexPaths = self.tableView.indexPathsForSelectedRows else {
 			return []
 		}
 		return indexPaths.map { model(at: $0) }
@@ -212,7 +225,7 @@ open class TableViewManager: NSObject {
 
 extension TableViewManager: UITableViewDataSource {
 	public func numberOfSections(in tableView: UITableView) -> Int {
-		return sectionModels.count
+		return self.sectionModels.count
 	}
 	
 	public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -316,10 +329,10 @@ extension TableViewManager: TableViewCellEventDelegate {
 extension TableViewManager: TableViewHeaderFooterEventDelegate {
 	public func handleEvent(headerFooterView: TableViewHeaderFooterView, event: EventCTA) {
 		for index in 0..<self.sectionModels.count {
-			let reuseIdentifier = tableView.headerView(forSection: index)!.reuseIdentifier
+			let reuseIdentifier = self.tableView.headerView(forSection: index)!.reuseIdentifier
 			let headerModel = self.sectionModels[index].headerModel!
 			if self.reuseIdentifierForHeader?(index, headerModel) == reuseIdentifier {
-				delegate?.manager(manager: self, didHeaderFooterInvokeCTA: event, section: index)
+				self.delegate?.manager(manager: self, didHeaderFooterInvokeCTA: event, section: index)
 				break
 			}
 		}
@@ -341,7 +354,9 @@ extension UITableView {
 		}
 	}
 	
-	fileprivate func applyChanges(_ changes: [Change<TableSectionModel>]) {
+	fileprivate func applyChanges(
+		_ changes: [Change<TableSectionModel>],
+		completion: (@escaping (Bool) -> Void)) {
 		let inserts = changes.compactMap({ $0.insert }).map({ $0.index })
 		let deletes = changes.compactMap({ $0.delete }).map({ $0.index })
 		let replaces = changes.compactMap({ $0.replace }).map({ $0.index })
@@ -365,10 +380,45 @@ extension UITableView {
 					self.moveSection(move.from, toSection: move.to)
 				}
 			}
-		}, completion: { _ in })
-		
-		replaces.executeIfPresent {
-			self.reloadSections(IndexSet($0), with: .automatic)
+			replaces.executeIfPresent { _ in
+				self.applyChangesForCellModels(changes)
+			}
+		}, completion: completion)
+	}
+	
+	fileprivate func applyChangesForCellModels(
+		_ changes: [Change<TableSectionModel>]) {
+		let replaces = changes.compactMap({ $0.replace })
+		replaces.forEach { replace in
+			guard replace.oldItem.isHeaderModelEqual(sectionModel: replace.newItem) &&
+				replace.oldItem.isFooterModelEqual(sectionModel: replace.newItem) else {
+					self.reloadSections(IndexSet([replace.index]), with: .none)
+					return
+			}
+			let modelChanges = diff(old: replace.oldItem.equatableCellModels, new: replace.newItem.equatableCellModels)
+			let inserts = modelChanges.compactMap { $0.insert }
+				.map { $0.index }
+				.map { IndexPath(item: $0, section: replace.index) }
+			self.insertRows(at: inserts, with: .automatic)
+			
+			let deletes = modelChanges.compactMap { $0.delete }
+				.map { $0.index }
+				.map { IndexPath(item: $0, section: replace.index) }
+			self.deleteRows(at: deletes, with: .automatic)
+			
+			let moves = changes.compactMap { $0.move }
+				.map { (
+					from: IndexPath(item: $0.fromIndex, section: replace.index),
+					to: IndexPath(item: $0.toIndex, section: replace.index)
+					) }
+			moves.forEach {
+				self.moveRow(at: $0.from, to: $0.to)
+			}
+			
+			let replaces = changes.compactMap { $0.replace }
+				.map { $0.index }
+				.map { IndexPath(item: $0, section: replace.index) }
+			self.reloadRows(at: replaces, with: .automatic)
 		}
 	}
 }

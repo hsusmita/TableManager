@@ -8,10 +8,10 @@
 
 import UIKit
 
-public struct NoContentHeaderFooterModel: TableViewHeaderFooterModel {
+public struct NoContentHeaderFooterModel: TableViewHeaderFooterModel, Hashable {
 	public let identifier: String
 	public let backgroundColor: UIColor
-
+	
 	public init(identifier: String, backgroundColor: UIColor) {
 		self.identifier = identifier
 		self.backgroundColor = backgroundColor

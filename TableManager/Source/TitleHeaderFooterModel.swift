@@ -8,7 +8,7 @@
 
 import Foundation
 
-public struct TitleHeaderFooterModel: TableViewHeaderFooterModel {
+public struct TitleHeaderFooterModel: TableViewHeaderFooterModel, Hashable {
 	public let title: String
 	public let identifier = UUID().uuidString
 	
