@@ -406,7 +406,7 @@ extension UITableView {
 				.map { IndexPath(item: $0, section: replace.index) }
 			self.deleteRows(at: deletes, with: .automatic)
 			
-			let moves = changes.compactMap { $0.move }
+			let moves = modelChanges.compactMap { $0.move }
 				.map { (
 					from: IndexPath(item: $0.fromIndex, section: replace.index),
 					to: IndexPath(item: $0.toIndex, section: replace.index)
@@ -415,7 +415,7 @@ extension UITableView {
 				self.moveRow(at: $0.from, to: $0.to)
 			}
 			
-			let replaces = changes.compactMap { $0.replace }
+			let replaces = modelChanges.compactMap { $0.replace }
 				.map { $0.index }
 				.map { IndexPath(item: $0, section: replace.index) }
 			self.reloadRows(at: replaces, with: .automatic)
