@@ -84,12 +84,12 @@ open class TableViewManager: NSObject {
     private var heightForHeader: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
     private var heightForFooter: ((Int, TableViewHeaderFooterModel) -> CGFloat)?
     private var animationStyleDictionary: [TableViewAnimationKey: UITableView.RowAnimation] = [:]
-
+    
     public var tableView: UITableView
     public var delegate: TableViewManagerProtocol?
     public var animationOn = true
     var tableReloadInProcess = false
-
+    
     public required init(_ tableView: UITableView, cellDescriptors: [CellDescriptor]) {
         self.tableView = tableView
         self.reuseIdentifierForCell = { indexPath, item in
@@ -206,7 +206,7 @@ open class TableViewManager: NSObject {
                 animationOn: self.animationOn,
                 animationStyles: self.animationStyleDictionary,
                 completion: { _ in
-                self.tableReloadInProcess = false
+                    self.tableReloadInProcess = false
             })
         }
     }
@@ -368,11 +368,12 @@ extension TableViewManager: TableViewCellEventDelegate {
 extension TableViewManager: TableViewHeaderFooterEventDelegate {
     public func handleEvent(headerFooterView: TableViewHeaderFooterView, event: EventCTA) {
         for index in 0..<self.sectionModels.count {
-            let reuseIdentifier = self.tableView.headerView(forSection: index)!.reuseIdentifier
-            let headerModel = self.sectionModels[index].headerModel!
-            if self.reuseIdentifierForHeader?(index, headerModel) == reuseIdentifier {
-                self.delegate?.manager(manager: self, didHeaderFooterInvokeCTA: event, section: index)
-                break
+            if let reuseIdentifier = self.tableView.headerView(forSection: index)?.reuseIdentifier {
+                let headerModel = self.sectionModels[index].headerModel!
+                if self.reuseIdentifierForHeader?(index, headerModel) == reuseIdentifier {
+                    self.delegate?.manager(manager: self, didHeaderFooterInvokeCTA: event, section: index)
+                    break
+                }
             }
         }
     }
@@ -448,7 +449,7 @@ extension UITableView {
         let rowDeleteAnimation = animationStyles[.rowDelete] ?? .automatic
         let rowReloadAnimation = animationStyles[.rowReload] ?? .automatic
         let sectionReloadAnimation = animationStyles[.sectionReload] ?? .automatic
-
+        
         replaces.forEach { replace in
             guard replace.oldItem.isHeaderModelEqual(sectionModel: replace.newItem) &&
                 replace.oldItem.isFooterModelEqual(sectionModel: replace.newItem) else {
