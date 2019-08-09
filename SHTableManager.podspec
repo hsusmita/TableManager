@@ -1,7 +1,7 @@
 Pod:: Spec.new do |spec|
   spec.platform     = 'ios', '10.0'
   spec.name         = 'SHTableManager'
-  spec.version      = '2.3'
+  spec.version      = '2.4'
   spec.summary      = 'A framework for managing UITableViews'
   spec.author = {
     'Susmita Horrow' => 'susmita.horrow@gmail.com'
@@ -10,7 +10,7 @@ Pod:: Spec.new do |spec|
   spec.homepage         = 'https://github.com/hsusmita/TableManager'
   spec.source = {
     :git => 'https://github.com/hsusmita/TableManager.git',
-    :tag => '2.3'
+    :tag => '2.4'
   }
   spec.ios.deployment_target = '10.0'
   spec.requires_arc = true

@@ -465,25 +465,30 @@ extension UITableView {
             let inserts = modelChanges.compactMap { $0.insert }
                 .map { $0.index }
                 .map { IndexPath(item: $0, section: replace.index) }
-            self.insertRows(at: inserts, with: rowInsertAnimation)
             
             let deletes = modelChanges.compactMap { $0.delete }
                 .map { $0.index }
                 .map { IndexPath(item: $0, section: replace.index) }
-            self.deleteRows(at: deletes, with: rowDeleteAnimation)
             
             let moves = modelChanges.compactMap { $0.move }
                 .map { (
                     from: IndexPath(item: $0.fromIndex, section: replace.index),
                     to: IndexPath(item: $0.toIndex, section: replace.index)
                     ) }
+            
+            var replaces = modelChanges.compactMap { $0.replace }
+                .map { $0.index }
+                .map { IndexPath(item: $0, section: replace.index) }
+            
+            //Remove delete and insert indexes for replaces
+            replaces.removeAll(where: { deletes.contains($0) })
+            replaces.removeAll(where: { inserts.contains($0) })
+
+            self.insertRows(at: inserts, with: rowInsertAnimation)
+            self.deleteRows(at: deletes, with: rowDeleteAnimation)
             moves.forEach {
                 self.moveRow(at: $0.from, to: $0.to)
             }
-            
-            let replaces = modelChanges.compactMap { $0.replace }
-                .map { $0.index }
-                .map { IndexPath(item: $0, section: replace.index) }
             self.reloadRows(at: replaces, with: rowReloadAnimation)
         }
     }
