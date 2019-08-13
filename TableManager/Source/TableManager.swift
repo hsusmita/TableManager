@@ -360,8 +360,10 @@ extension TableViewManager: UITableViewDelegate {
 
 extension TableViewManager: TableViewCellEventDelegate {
     public func handleEvent(cell: TableViewCell, event: EventCTA) {
-        let indexPath = tableView.indexPath(for: cell as! UITableViewCell)
-        self.delegate?.manager(manager: self, didInvokeCTA: event, indexPath: indexPath!)
+        if let cell = cell as? UITableViewCell,
+            let indexPath = tableView.indexPath(for: cell) {
+            self.delegate?.manager(manager: self, didInvokeCTA: event, indexPath: indexPath)
+        }
     }
 }
 
