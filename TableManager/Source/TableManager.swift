@@ -370,8 +370,7 @@ extension TableViewManager: TableViewCellEventDelegate {
 extension TableViewManager: TableViewHeaderFooterEventDelegate {
     public func handleEvent(headerFooterView: TableViewHeaderFooterView, event: EventCTA) {
         for index in 0..<self.sectionModels.count {
-            if let reuseIdentifier = self.tableView.headerView(forSection: index)?.reuseIdentifier {
-                let headerModel = self.sectionModels[index].headerModel!
+            if let reuseIdentifier = self.tableView.headerView(forSection: index)?.reuseIdentifier, let headerModel = self.sectionModels[index].headerModel {
                 if self.reuseIdentifierForHeader?(index, headerModel) == reuseIdentifier {
                     self.delegate?.manager(manager: self, didHeaderFooterInvokeCTA: event, section: index)
                     break
