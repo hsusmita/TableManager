@@ -52,7 +52,7 @@ public protocol EventEmittingHeaderFooter: EventEmittingElement {
     var delegate: TableViewHeaderFooterEventDelegate? { get set }
 }
 
-public protocol TableViewManagerProtocol {
+public protocol TableViewManagerProtocol: class {
     func manager(manager: TableViewManager, didSelect indexPath: IndexPath)
     func manager(manager: TableViewManager, didDeselect indexPath: IndexPath)
     func manager(manager: TableViewManager, didInvokeCTA cta: EventCTA, indexPath: IndexPath)
@@ -86,7 +86,7 @@ open class TableViewManager: NSObject {
     private var animationStyleDictionary: [TableViewAnimationKey: UITableView.RowAnimation] = [:]
     
     public var tableView: UITableView
-    public var delegate: TableViewManagerProtocol?
+    public weak var delegate: TableViewManagerProtocol?
     public var animationOn = true
     var tableReloadInProcess = false
     
@@ -471,7 +471,7 @@ extension UITableView {
                 .map { $0.index }
                 .map { IndexPath(item: $0, section: replace.index) }
             
-            let moves = modelChanges.compactMap { $0.move }
+            var moves = modelChanges.compactMap { $0.move }
                 .map { (
                     from: IndexPath(item: $0.fromIndex, section: replace.index),
                     to: IndexPath(item: $0.toIndex, section: replace.index)
@@ -487,6 +487,8 @@ extension UITableView {
 
             self.insertRows(at: inserts, with: rowInsertAnimation)
             self.deleteRows(at: deletes, with: rowDeleteAnimation)
+            
+            moves.removeAll(where: { deletes.contains($0.from) })
             moves.forEach {
                 self.moveRow(at: $0.from, to: $0.to)
             }
