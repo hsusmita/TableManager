@@ -105,12 +105,14 @@ open class TableViewManager: NSObject {
             var height = UITableView.automaticDimension
             for descriptor in cellDescriptors {
                 if descriptor.isMatching(indexPath, item) {
-                    height = descriptor.height.value(indexPath: indexPath, item: item)
+                    let heightFromDescriptor = descriptor.height.value(indexPath: indexPath, item: item)
+                    height = heightFromDescriptor < 0 ? UITableView.automaticDimension : heightFromDescriptor
                     break
                 }
             }
             return height
         }
+    
         super.init()
         for descriptor in cellDescriptors {
             switch descriptor.prototypeSource {
