@@ -219,16 +219,13 @@ open class TableViewManager: NSObject {
             self.sectionModels = [sectionModel]
             self.tableView.reloadData()
         } else {
-            let changes = diff(old: self.sectionModels.first?.equatableCellModels ?? [], new: sectionModel.equatableCellModels)
+            let changes = diff(old: self.sectionModels, new: [sectionModel])
             if !changes.isEmpty {
                 self.sectionModels = [sectionModel]
                 self.tableReloadInProcess = true
-                self.tableView.reload(
-                    changes: changes,
-                    updateData: { [weak self] in
-                        self?.tableReloadInProcess = false
-                    },
-                    completion: nil)
+                self.tableView.applyChanges(changes, animationOn: self.animationOn, animationStyles: self.animationStyleDictionary) { [weak self] _ in
+                    self?.tableReloadInProcess = false
+                }
             }
         }
     }
